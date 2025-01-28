@@ -1,18 +1,59 @@
 'use client'
-import { useState } from "react";
+import { useState, useActionState } from "react";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import MDEditor from '@uiw/react-md-editor';
 import { Button } from "./ui/button";
 import { Send } from "lucide-react";
+import { formSchema } from "@/lib/validation";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function StartupForm() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [pitch, setPitch] = useState("");
+  const { toast } = useToast()
+  const handleSubmit = async (prevState: any, formData: FormData) => {
 
-  const isPending = false;
+    try {
+      const formValues = {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        category: formData.get('category'),
+        link: formData.get('link'),
+        pitch
+      }
+      await formSchema.parseAsync(formValues)
+      /* const result = createIdea()
 
-  return <form action={() => { }} className="startup-form">
+      if(result.status === 'SUCCESS'){
+        toast({ title: 'Success', description: 'Your startup pitch has been created' })
+      } */
+      console.log({ formValues });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors = error.flatten().fieldErrors
+        console.log({ error, fieldErrors });
+
+        setErrors(fieldErrors as unknown as Record<string, string>)
+        toast({ title: "Error", description: 'Please check your inputs and try again', variant: 'destructive' })
+
+        return { ...prevState, error: 'Validation failed', status: 'ERROR' }
+      }
+      toast({ title: "Error", description: 'An unexpected error has ocurred', variant: 'destructive' })
+
+      return {
+        ...prevState,
+        error: 'An unexpected error has ocurred',
+        status: 'ERROR'
+      }
+    }
+  }
+  const [state, formAction, isPending] = useActionState(handleSubmit, { errors: [], status: 'INITIAL' })
+
+
+  return <form action={formAction} className="startup-form">
     <div>
       <label htmlFor="title" className="startup-form_label">Title</label>
       <Input id="title" required name="title" className="startup-form_input" placeholder="Startup Title" />
@@ -41,7 +82,7 @@ export default function StartupForm() {
         value={pitch}
         style={{ borderRadius: 20, overflow: "hidden" }}
         textareaProps={{
-          placeholder: "Briefly descript your idea and what problem it solves"
+          placeholder: "Briefly describe your idea and what problem it solves"
         }}
         previewOptions={{ disallowedElements: ["style"] }}
         onChange={(value) => setPitch(value as string)} />
@@ -49,7 +90,7 @@ export default function StartupForm() {
     </div>
     <Button type="submit" className="startup-form_btn text-white" disabled={isPending}>
       {isPending ? 'Submitting' : 'Submit Your Pitch'}
-      <Send className="size-10 ml-2"/>
+      <Send className="size-10 ml-2" />
     </Button>
   </form>
 }
