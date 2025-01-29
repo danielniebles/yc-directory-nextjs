@@ -8,12 +8,16 @@ import { Send } from "lucide-react";
 import { formSchema } from "@/lib/validation";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { createPitch } from "@/lib/actions";
+import { useRouter } from "next/navigation";
+import { SanityDocument } from "next-sanity";
 
 
 export default function StartupForm() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [pitch, setPitch] = useState("");
   const { toast } = useToast()
+  const router = useRouter()
   const handleSubmit = async (prevState: any, formData: FormData) => {
 
     try {
@@ -25,12 +29,15 @@ export default function StartupForm() {
         pitch
       }
       await formSchema.parseAsync(formValues)
-      /* const result = createIdea()
 
-      if(result.status === 'SUCCESS'){
+      const result = await createPitch(formData, pitch) as SanityDocument
+
+      if (result.status === 'SUCCESS') {
         toast({ title: 'Success', description: 'Your startup pitch has been created' })
-      } */
-      console.log({ formValues });
+        router.push(`/startup/${result._id}`)
+
+      }
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors = error.flatten().fieldErrors
